@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹소설 플랫폼 - 최고의 웹소설을 만나보세요</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1>📚 웹소설 플랫폼</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="active">홈</a></li>
+                    <li><a href="#genres">장르</a></li>
+                    <li><a href="#rankings">랭킹</a></li>
+                    <li><a href="#new">신작</a></li>
+                </ul>
+            </nav>
+            <div class="search-box">
+                <input type="text" placeholder="작품 검색..." id="searchInput">
+                <button onclick="searchNovels()">🔍</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h2>오늘의 추천 작품</h2>
+                <div class="featured-novel" id="featuredNovel">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+            </div>
+        </section>
+
+        <section class="novels-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>인기 웹소설</h2>
+                    <div class="filter-tabs">
+                        <button class="tab active" onclick="filterNovels('all')">전체</button>
+                        <button class="tab" onclick="filterNovels('fantasy')">판타지</button>
+                        <button class="tab" onclick="filterNovels('romance')">로맨스</button>
+                        <button class="tab" onclick="filterNovels('action')">액션</button>
+                        <button class="tab" onclick="filterNovels('mystery')">미스터리</button>
+                    </div>
+                </div>
+                <div class="novels-grid" id="novelsGrid">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+            </div>
+        </section>
+
+        <section class="new-novels">
+            <div class="container">
+                <h2>신작 웹소설</h2>
+                <div class="novels-grid" id="newNovelsGrid">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 웹소설 플랫폼. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
