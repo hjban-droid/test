@@ -36,10 +36,48 @@
     </header>
 
     <main>
+        <section class="main-banner-section">
+            <div class="container">
+                <div class="banner-wrapper">
+                    <div class="main-banner-carousel">
+                        <button class="carousel-btn carousel-btn-left" onclick="changeBanner(-1)">‹</button>
+                        <div class="banner-slide" id="bannerSlide">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                        <button class="carousel-btn carousel-btn-right" onclick="changeBanner(1)">›</button>
+                        <div class="banner-indicator" id="bannerIndicator">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                    <div class="side-recommendations">
+                        <h3>추천 작품</h3>
+                        <div class="side-cards" id="sideCards">
+                            <!-- 동적으로 생성됨 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="hero">
             <div class="container">
-                <h2>오늘의 추천 작품</h2>
-                <div class="featured-novel" id="featuredNovel">
+                <div class="section-header">
+                    <h2>오늘의 추천 작품</h2>
+                    <a href="#" class="more-link">더보기</a>
+                </div>
+                <div class="featured-novels-grid" id="featuredNovelsGrid">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+            </div>
+        </section>
+
+        <section class="ranking-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>웹소설 실시간 랭킹</h2>
+                    <a href="#" class="more-link">더보기</a>
+                </div>
+                <div class="ranking-list" id="rankingList">
                     <!-- 동적으로 생성됨 -->
                 </div>
             </div>
@@ -49,13 +87,14 @@
             <div class="container">
                 <div class="section-header">
                     <h2>인기 웹소설</h2>
-                    <div class="filter-tabs">
-                        <button class="tab active" onclick="filterNovels('all')">전체</button>
-                        <button class="tab" onclick="filterNovels('fantasy')">판타지</button>
-                        <button class="tab" onclick="filterNovels('romance')">로맨스</button>
-                        <button class="tab" onclick="filterNovels('action')">액션</button>
-                        <button class="tab" onclick="filterNovels('mystery')">미스터리</button>
-                    </div>
+                    <a href="#" class="more-link">더보기</a>
+                </div>
+                <div class="filter-tabs">
+                    <button class="tab active" onclick="filterNovels('all')">전체</button>
+                    <button class="tab" onclick="filterNovels('fantasy')">판타지</button>
+                    <button class="tab" onclick="filterNovels('romance')">로맨스</button>
+                    <button class="tab" onclick="filterNovels('action')">액션</button>
+                    <button class="tab" onclick="filterNovels('mystery')">미스터리</button>
                 </div>
                 <div class="novels-grid" id="novelsGrid">
                     <!-- 동적으로 생성됨 -->
@@ -65,7 +104,10 @@
 
         <section class="new-novels">
             <div class="container">
-                <h2>신작 웹소설</h2>
+                <div class="section-header">
+                    <h2>신작 웹소설</h2>
+                    <a href="#" class="more-link">더보기</a>
+                </div>
                 <div class="novels-grid" id="newNovelsGrid">
                     <!-- 동적으로 생성됨 -->
                 </div>

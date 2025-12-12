@@ -116,11 +116,25 @@ const novels = [
 // 현재 필터
 let currentFilter = 'all';
 
+// 현재 배너 인덱스
+let currentBannerIndex = 0;
+let bannerNovels = [];
+
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', function() {
+    displayMainBanner();
+    displaySideRecommendations();
     displayFeaturedNovel();
+    displayRanking();
     displayNovels();
     displayNewNovels();
+    
+    // 자동 슬라이드 (5초마다)
+    setInterval(() => {
+        if (bannerNovels.length > 0) {
+            changeBanner(1);
+        }
+    }, 5000);
     
     // Mixpanel: 페이지 뷰 추적
     if (typeof mixpanel !== 'undefined') {
@@ -131,38 +145,231 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 추천 작품 표시
-function displayFeaturedNovel() {
-    const featured = novels[0]; // 첫 번째 작품을 추천으로
-    const featuredDiv = document.getElementById('featuredNovel');
+// 메인 배너 표시
+function displayMainBanner() {
+    // 상위 5개 작품을 배너로 사용
+    bannerNovels = [...novels].sort((a, b) => {
+        const scoreA = a.views * 0.7 + a.rating * 10000;
+        const scoreB = b.views * 0.7 + b.rating * 10000;
+        return scoreB - scoreA;
+    }).slice(0, 5);
     
-    featuredDiv.innerHTML = `
-        <h3>${featured.title}</h3>
-        <div class="meta">
-            <span>작가: ${featured.author}</span>
-            <span>⭐ ${featured.rating}</span>
-            <span>👁️ ${featured.views.toLocaleString()}회</span>
-        </div>
-        <p class="description">${featured.description}</p>
-        <div class="tags">
-            <span class="tag">${getGenreName(featured.genre)}</span>
-            <span class="tag">${featured.chapters}화</span>
-        </div>
-    `;
+    const bannerSlide = document.getElementById('bannerSlide');
+    const bannerIndicator = document.getElementById('bannerIndicator');
     
-    featuredDiv.onclick = () => {
-        // Mixpanel: 추천 작품 클릭 추적
-        if (typeof mixpanel !== 'undefined') {
-            mixpanel.track('Featured Novel Clicked', {
-                novel_id: featured.id,
-                novel_title: featured.title,
-                novel_genre: featured.genre,
-                novel_rating: featured.rating,
-                novel_views: featured.views
-            });
+    if (!bannerSlide || bannerNovels.length === 0) return;
+    
+    bannerSlide.innerHTML = bannerNovels.map((novel, index) => `
+        <div class="banner-item ${index === 0 ? 'active' : ''}" onclick="trackBannerClick(${novel.id})">
+            <div class="banner-image" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 5rem; color: white;">
+                ${isImagePath(novel.cover) 
+                    ? `<img src="${novel.cover}" alt="${novel.title}" style="width: 100%; height: 100%; object-fit: cover;">` 
+                    : novel.title.charAt(0)}
+            </div>
+            <div class="banner-overlay">
+                <div class="banner-badges">
+                    <span class="banner-badge only">ONLY</span>
+                    <span class="banner-badge event">${getGenreName(novel.genre)}</span>
+                </div>
+                <h2>${novel.title}</h2>
+                <p>전원 포인트 & 8화 무료</p>
+                <div class="banner-title">${novel.title}</div>
+                <div class="banner-copyright">ⓒ ${novel.author}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    bannerIndicator.textContent = `1/${bannerNovels.length}`;
+}
+
+// 배너 변경
+function changeBanner(direction) {
+    if (bannerNovels.length === 0) return;
+    
+    currentBannerIndex += direction;
+    
+    if (currentBannerIndex < 0) {
+        currentBannerIndex = bannerNovels.length - 1;
+    } else if (currentBannerIndex >= bannerNovels.length) {
+        currentBannerIndex = 0;
+    }
+    
+    const bannerItems = document.querySelectorAll('.banner-item');
+    const bannerIndicator = document.getElementById('bannerIndicator');
+    
+    bannerItems.forEach((item, index) => {
+        item.classList.remove('active');
+        if (index === currentBannerIndex) {
+            item.classList.add('active');
         }
-        showNovelDetail(featured.id);
-    };
+    });
+    
+    if (bannerIndicator) {
+        bannerIndicator.textContent = `${currentBannerIndex + 1}/${bannerNovels.length}`;
+    }
+}
+
+// 배너 클릭 추적
+function trackBannerClick(novelId) {
+    const novel = novels.find(n => n.id === novelId);
+    if (!novel) return;
+    
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Banner Clicked', {
+            novel_id: novel.id,
+            novel_title: novel.title,
+            novel_genre: novel.genre,
+            banner_position: currentBannerIndex + 1
+        });
+    }
+    
+    showNovelDetail(novelId);
+}
+
+// 사이드 추천 작품 표시
+function displaySideRecommendations() {
+    const sideCards = document.getElementById('sideCards');
+    if (!sideCards) return;
+    
+    // 배너에 사용되지 않은 상위 작품들 중 3개 선택
+    const sideNovels = [...novels]
+        .sort((a, b) => {
+            const scoreA = a.views * 0.7 + a.rating * 10000;
+            const scoreB = b.views * 0.7 + b.rating * 10000;
+            return scoreB - scoreA;
+        })
+        .filter(n => !bannerNovels.some(bn => bn.id === n.id))
+        .slice(0, 3);
+    
+    sideCards.innerHTML = sideNovels.map(novel => `
+        <div class="side-card" onclick="trackNovelClick(${novel.id})">
+            <div class="side-card-cover">
+                ${isImagePath(novel.cover) 
+                    ? `<img src="${novel.cover}" alt="${novel.title}" onerror="this.parentElement.innerHTML='${novel.title.charAt(0)}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='2rem';">` 
+                    : novel.title.charAt(0)}
+            </div>
+            <div class="side-card-info">
+                <h4>${novel.title}</h4>
+                <div class="author">${novel.author}</div>
+                <div class="stats">
+                    <span class="rating">⭐ ${novel.rating}</span>
+                    <span>👁️ ${novel.views.toLocaleString()}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 실시간 랭킹 표시
+function displayRanking() {
+    const rankingList = document.getElementById('rankingList');
+    if (!rankingList) return;
+    
+    // 조회수와 평점을 기준으로 정렬
+    const rankedNovels = [...novels].sort((a, b) => {
+        // 조회수와 평점을 종합한 점수 계산
+        const scoreA = a.views * 0.7 + a.rating * 10000;
+        const scoreB = b.views * 0.7 + b.rating * 10000;
+        return scoreB - scoreA;
+    }).slice(0, 10);
+    
+    rankingList.innerHTML = rankedNovels.map((novel, index) => `
+        <div class="ranking-item" onclick="trackNovelClick(${novel.id})">
+            <div class="ranking-number">${index + 1}</div>
+            <div class="ranking-info">
+                <h4>${novel.title}</h4>
+                <div class="author">${novel.author}</div>
+            </div>
+            <div class="ranking-stats">
+                <span>⭐ ${novel.rating}</span>
+                <span>👁️ ${novel.views.toLocaleString()}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 장르별 추천 작품 선택 (각 장르에서 평점이 높은 순으로 여러 개 선택)
+function getFeaturedNovelsByGenre(genre, count = 3) {
+    const genreNovels = novels.filter(n => n.genre === genre);
+    if (genreNovels.length === 0) return [];
+    
+    // 평점이 높은 순으로 정렬, 같으면 조회수가 많은 순
+    return genreNovels.sort((a, b) => {
+        if (b.rating !== a.rating) {
+            return b.rating - a.rating;
+        }
+        return b.views - a.views;
+    }).slice(0, count);
+}
+
+// 추천 작품 표시 (장르별로 여러 개, 최대 10개까지)
+function displayFeaturedNovel() {
+    const genres = ['fantasy', 'romance', 'action', 'mystery'];
+    const featuredNovels = [];
+    const maxTotal = 10;
+    const perGenre = Math.ceil(maxTotal / genres.length);
+    
+    // 각 장르별로 추천 작품 선택 (장르당 최대 perGenre개)
+    genres.forEach(genre => {
+        const genreNovels = getFeaturedNovelsByGenre(genre, perGenre);
+        featuredNovels.push(...genreNovels);
+    });
+    
+    // 전체 작품을 평점 순으로 정렬하고 최대 10개만 선택
+    const sortedNovels = featuredNovels.sort((a, b) => {
+        if (b.rating !== a.rating) {
+            return b.rating - a.rating;
+        }
+        return b.views - a.views;
+    }).slice(0, maxTotal);
+    
+    const featuredGrid = document.getElementById('featuredNovelsGrid');
+    
+    if (sortedNovels.length === 0) {
+        featuredGrid.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">추천 작품이 없습니다.</div>';
+        return;
+    }
+    
+    featuredGrid.innerHTML = sortedNovels.map(featured => `
+        <div class="featured-novel" onclick="trackFeaturedNovelClick(${featured.id}, '${featured.genre}')">
+            <div class="featured-genre-badge">${getGenreName(featured.genre)}</div>
+            <div class="featured-cover">
+                ${isImagePath(featured.cover) 
+                    ? `<img src="${featured.cover}" alt="${featured.title}" onerror="this.parentElement.innerHTML='${featured.title.charAt(0)}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='2rem';">` 
+                    : featured.cover}
+            </div>
+            <h3>${featured.title}</h3>
+            <div class="meta">
+                <span>${featured.author}</span>
+                <span>⭐ ${featured.rating}</span>
+                <span>👁️ ${featured.views.toLocaleString()}</span>
+            </div>
+            <p class="description">${featured.description}</p>
+            <div class="tags">
+                <span class="tag">${featured.chapters}화</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 추천 작품 클릭 추적 함수
+function trackFeaturedNovelClick(novelId, genre) {
+    const novel = novels.find(n => n.id === novelId);
+    if (!novel) return;
+    
+    // Mixpanel: 추천 작품 클릭 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Featured Novel Clicked', {
+            novel_id: novel.id,
+            novel_title: novel.title,
+            novel_genre: novel.genre,
+            novel_rating: novel.rating,
+            novel_views: novel.views,
+            genre_category: genre
+        });
+    }
+    
+    showNovelDetail(novelId);
 }
 
 // 웹소설 목록 표시
