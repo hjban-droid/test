@@ -1,3 +1,18 @@
+// 이미지 파일 목록 (image 폴더의 이미지들)
+const imageFiles = ['1.png', '2.png', '3.png'];
+
+// 이미지 경로 생성 함수
+function getImagePath(index) {
+    if (imageFiles.length === 0) return null;
+    const imageIndex = index % imageFiles.length;
+    return `image/${imageFiles[imageIndex]}`;
+}
+
+// 이미지가 있는지 확인하는 함수
+function isImagePath(path) {
+    return path && (path.includes('image/') || path.includes('.png') || path.includes('.jpg') || path.includes('.jpeg') || path.includes('.gif') || path.includes('.webp'));
+}
+
 // 웹소설 데이터
 const novels = [
     {
@@ -10,7 +25,7 @@ const novels = [
         views: 125000,
         chapters: 150,
         isNew: false,
-        cover: "⚔️"
+        cover: getImagePath(0) || "⚔️"
     },
     {
         id: 2,
@@ -22,7 +37,7 @@ const novels = [
         views: 98000,
         chapters: 120,
         isNew: false,
-        cover: "🌙"
+        cover: getImagePath(1) || "🌙"
     },
     {
         id: 3,
@@ -34,7 +49,7 @@ const novels = [
         views: 156000,
         chapters: 200,
         isNew: false,
-        cover: "🗡️"
+        cover: getImagePath(2) || "🗡️"
     },
     {
         id: 4,
@@ -46,7 +61,7 @@ const novels = [
         views: 87000,
         chapters: 80,
         isNew: false,
-        cover: "🔍"
+        cover: getImagePath(0) || "🔍"
     },
     {
         id: 5,
@@ -58,7 +73,7 @@ const novels = [
         views: 112000,
         chapters: 180,
         isNew: true,
-        cover: "🐉"
+        cover: getImagePath(1) || "🐉"
     },
     {
         id: 6,
@@ -70,7 +85,7 @@ const novels = [
         views: 95000,
         chapters: 100,
         isNew: true,
-        cover: "⭐"
+        cover: getImagePath(2) || "⭐"
     },
     {
         id: 7,
@@ -82,7 +97,7 @@ const novels = [
         views: 134000,
         chapters: 250,
         isNew: false,
-        cover: "🥋"
+        cover: getImagePath(0) || "🥋"
     },
     {
         id: 8,
@@ -94,7 +109,7 @@ const novels = [
         views: 76000,
         chapters: 90,
         isNew: true,
-        cover: "📖"
+        cover: getImagePath(1) || "📖"
     }
 ];
 
@@ -106,6 +121,14 @@ document.addEventListener('DOMContentLoaded', function() {
     displayFeaturedNovel();
     displayNovels();
     displayNewNovels();
+    
+    // Mixpanel: 페이지 뷰 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Page View', {
+            page: 'Home',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // 추천 작품 표시
@@ -127,7 +150,19 @@ function displayFeaturedNovel() {
         </div>
     `;
     
-    featuredDiv.onclick = () => showNovelDetail(featured.id);
+    featuredDiv.onclick = () => {
+        // Mixpanel: 추천 작품 클릭 추적
+        if (typeof mixpanel !== 'undefined') {
+            mixpanel.track('Featured Novel Clicked', {
+                novel_id: featured.id,
+                novel_title: featured.title,
+                novel_genre: featured.genre,
+                novel_rating: featured.rating,
+                novel_views: featured.views
+            });
+        }
+        showNovelDetail(featured.id);
+    };
 }
 
 // 웹소설 목록 표시
@@ -138,8 +173,12 @@ function displayNovels(filter = 'all') {
         : novels.filter(n => n.genre === filter && !n.isNew);
     
     grid.innerHTML = filteredNovels.map(novel => `
-        <div class="novel-card" onclick="showNovelDetail(${novel.id})">
-            <div class="cover">${novel.cover}</div>
+        <div class="novel-card" onclick="trackNovelClick(${novel.id})">
+            <div class="cover">
+                ${isImagePath(novel.cover) 
+                    ? `<img src="${novel.cover}" alt="${novel.title}" onerror="this.parentElement.innerHTML='${novel.title.charAt(0)}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='3rem';">` 
+                    : novel.cover}
+            </div>
             <div class="info">
                 <h3>${novel.title}</h3>
                 <div class="author">${novel.author}</div>
@@ -159,8 +198,12 @@ function displayNewNovels() {
     const newNovels = novels.filter(n => n.isNew);
     
     grid.innerHTML = newNovels.map(novel => `
-        <div class="novel-card" onclick="showNovelDetail(${novel.id})">
-            <div class="cover">${novel.cover}</div>
+        <div class="novel-card" onclick="trackNovelClick(${novel.id}, true)">
+            <div class="cover">
+                ${isImagePath(novel.cover) 
+                    ? `<img src="${novel.cover}" alt="${novel.title}" onerror="this.parentElement.innerHTML='${novel.title.charAt(0)}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='3rem';">` 
+                    : novel.cover}
+            </div>
             <div class="info">
                 <h3>${novel.title}</h3>
                 <div class="author">${novel.author}</div>
@@ -178,6 +221,14 @@ function displayNewNovels() {
 function filterNovels(genre) {
     currentFilter = genre;
     
+    // Mixpanel: 필터 변경 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Genre Filter Changed', {
+            genre: genre,
+            genre_name: getGenreName(genre)
+        });
+    }
+    
     // 탭 활성화 상태 변경
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
@@ -185,6 +236,29 @@ function filterNovels(genre) {
     event.target.classList.add('active');
     
     displayNovels(genre);
+}
+
+// 작품 클릭 추적 함수
+function trackNovelClick(novelId, isNew = false) {
+    const novel = novels.find(n => n.id === novelId);
+    if (!novel) return;
+    
+    // Mixpanel: 작품 클릭 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Novel Clicked', {
+            novel_id: novel.id,
+            novel_title: novel.title,
+            novel_author: novel.author,
+            novel_genre: novel.genre,
+            novel_rating: novel.rating,
+            novel_views: novel.views,
+            novel_chapters: novel.chapters,
+            is_new: isNew,
+            section: isNew ? 'new_novels' : 'popular_novels'
+        });
+    }
+    
+    showNovelDetail(novelId);
 }
 
 // 장르 이름 변환
@@ -202,6 +276,15 @@ function getGenreName(genre) {
 function showNovelDetail(novelId) {
     const novel = novels.find(n => n.id === novelId);
     if (!novel) return;
+    
+    // Mixpanel: 상세 페이지 뷰 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Novel Detail Viewed', {
+            novel_id: novel.id,
+            novel_title: novel.title,
+            novel_genre: novel.genre
+        });
+    }
     
     // 상세 페이지 HTML 생성
     const detailHTML = `
@@ -291,6 +374,16 @@ function generateChaptersList(totalChapters, novelId) {
 function readChapter(novelId, chapterNum) {
     const novel = novels.find(n => n.id === novelId);
     if (!novel) return;
+    
+    // Mixpanel: 챕터 읽기 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Chapter Read', {
+            novel_id: novel.id,
+            novel_title: novel.title,
+            chapter_number: chapterNum,
+            novel_genre: novel.genre
+        });
+    }
     
     // 샘플 챕터 내용 생성
     const chapterContent = generateChapterContent(novel.title, chapterNum);
@@ -387,19 +480,40 @@ function searchNovels() {
         return;
     }
     
+    // Mixpanel: 검색 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Search Performed', {
+            search_term: searchTerm,
+            filter: currentFilter
+        });
+    }
+    
     const filtered = novels.filter(novel => 
         novel.title.toLowerCase().includes(searchTerm) ||
         novel.author.toLowerCase().includes(searchTerm) ||
         novel.description.toLowerCase().includes(searchTerm)
     );
     
+    // Mixpanel: 검색 결과 추적
+    if (typeof mixpanel !== 'undefined') {
+        mixpanel.track('Search Results', {
+            search_term: searchTerm,
+            results_count: filtered.length,
+            has_results: filtered.length > 0
+        });
+    }
+    
     const grid = document.getElementById('novelsGrid');
     if (filtered.length === 0) {
         grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-secondary);">검색 결과가 없습니다.</div>';
     } else {
         grid.innerHTML = filtered.map(novel => `
-            <div class="novel-card" onclick="showNovelDetail(${novel.id})">
-                <div class="cover">${novel.cover}</div>
+            <div class="novel-card" onclick="trackNovelClick(${novel.id})">
+                <div class="cover">
+                    ${isImagePath(novel.cover) 
+                        ? `<img src="${novel.cover}" alt="${novel.title}" onerror="this.parentElement.innerHTML='${novel.title.charAt(0)}'; this.parentElement.style.display='flex'; this.parentElement.style.alignItems='center'; this.parentElement.style.justifyContent='center'; this.parentElement.style.fontSize='3rem';">` 
+                        : novel.cover}
+                </div>
                 <div class="info">
                     <h3>${novel.title}</h3>
                     <div class="author">${novel.author}</div>
