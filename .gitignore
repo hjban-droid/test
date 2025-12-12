@@ -18,6 +18,9 @@ npm-debug.log*
 *.tmp
 *.temp
 
+# Node modules
+node_modules/
+
 # Server files (optional - remove if you want to commit server.ps1)
 # server.ps1
 
